@@ -8,40 +8,48 @@
 import Foundation
 import SwiftData
 
-/// Representa una pieza de inventario, refacción o componente
-/// que se puede utilizar en una orden de reparación.
 @Model
-class InventoryItem {
-    @Attribute(.unique) var id: UUID
+final class InventoryItem {
 
-    /// Nombre de la pieza o componente (ej: “RAM DDR4 8GB”, “Fuente 600W”)
-    var name: String
+    @Attribute(.unique)
+    var sku: String // Ej: "SSD-240-KINGSTON"
 
-    /// Cantidad disponible en stock
-    var quantity: Int
+    var name: String // Ej: "Disco SSD 240GB Kingston"
 
-    /// Precio base de compra (MXN)
-    var unitCost: Double
+    var category: String? // Ej: "Almacenamiento", "Memorias", "Tarjetas madre", etc.
 
-    /// Precio sugerido de venta (MXN)
-    var unitPrice: Double
+    var quantity: Int // Stock actual
 
-    /// Texto libre: proveedor, notas, compatibilidad, etc.
+    var minimumStock: Int // Nivel mínimo para alerta
+
+    var unitCost: Double // Precio por pieza
+
+    var location: String? // Ej: "Cajón 3", "Estante A2"
+
     var notes: String?
 
+    var createdAt: Date
+    var updatedAt: Date
+
     init(
-        id: UUID = UUID(),
+        sku: String,
         name: String,
-        quantity: Int,
-        unitCost: Double,
-        unitPrice: Double,
+        category: String? = nil,
+        quantity: Int = 0,
+        minimumStock: Int = 0,
+        unitCost: Double = 0,
+        location: String? = nil,
         notes: String? = nil
     ) {
-        self.id = id
+        self.sku = sku
         self.name = name
+        self.category = category
         self.quantity = quantity
+        self.minimumStock = minimumStock
         self.unitCost = unitCost
-        self.unitPrice = unitPrice
+        self.location = location
         self.notes = notes
+        self.createdAt = Date()
+        self.updatedAt = Date()
     }
 }

@@ -1,10 +1,3 @@
-//
-//  WorkOrdersFormView.swift
-//  CompuGestion
-//
-//  Created by Uriel Cruz on 16/11/25.
-//
-
 import SwiftUI
 import SwiftData
 
@@ -15,55 +8,97 @@ struct WorkOrderFormView: View {
     @State var viewModel: WorkOrderFormViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(spacing: 0) {
 
-            // Título dinámico (crear vs editar)
-            Text(viewModel.title)
-                .font(.title2)
-                .bold()
+            // MARK: - Header
+            HStack {
+                Text(viewModel.title)
+                    .font(.title3)
+                    .bold()
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.top, 10)
 
-            Form {
-                Section("Cliente") {
-                    TextField("Nombre del cliente", text: $viewModel.customerName)
-                }
+            Divider()
 
-                Section("Equipo") {
-                    TextField(
-                        "Descripción del equipo (ej: Laptop HP, PC Gamer)",
-                        text: $viewModel.deviceDescription
-                    )
-                }
+            // MARK: - Contenido scrollable (una sola columna)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
 
-                Section("Descripción del problema") {
-                    TextEditor(text: $viewModel.problemDescription)
-                        .frame(minHeight: 80)
-                }
-
-                Section("Estado de la orden") {
-                    Picker("Estado", selection: $viewModel.status) {
-                        ForEach(WorkOrderStatus.allCases) { status in
-                            Text(status.localizedTitle)
-                                .tag(status)
-                        }
+                    // Cliente
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Cliente")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("Nombre del cliente", text: $viewModel.customerName)
                     }
-                    .pickerStyle(.segmented)
-                }
 
-                Section("Costo estimado (MXN)") {
-                    TextField("Ej. 1500", text: $viewModel.estimatedCostText)
-                        .textFieldStyle(.roundedBorder)
-                        // .keyboardType(.decimalPad) // iOS-only; not available on macOS
-                        .onChange(of: viewModel.estimatedCostText) { _, newValue in
-                            // Simple macOS-friendly numeric filtering:
-                            // allow digits and at most one decimal separator (.)
-                            let filtered = filterToDecimalString(newValue)
-                            if filtered != newValue {
-                                viewModel.estimatedCostText = filtered
+                    // Equipo
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Equipo")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField(
+                            "Descripción del equipo (ej. Laptop HP, PC Gamer)",
+                            text: $viewModel.deviceDescription
+                        )
+                    }
+
+                    // Estado
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Estado")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        // Picker en estilo menú para que no ocupe todo el ancho
+                        Picker("Estado", selection: $viewModel.status) {
+                            ForEach(WorkOrderStatus.allCases) { status in
+                                Text(status.localizedTitle)
+                                    .tag(status)
                             }
                         }
+                        .pickerStyle(.menu)
+                    }
+
+                    // Costo estimado
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Costo estimado (MXN)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        HStack {
+                            TextField("Ej. 1500", text: $viewModel.estimatedCostText)
+                                .textFieldStyle(.roundedBorder)
+
+                            Text("MXN")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    // Descripción del problema
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Descripción del problema")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        TextEditor(text: $viewModel.problemDescription)
+                            .frame(minHeight: 120)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.secondary.opacity(0.3))
+                            )
+                    }
+
+                    Spacer(minLength: 0)
                 }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
             }
 
+            Divider()
+
+            // MARK: - Barra inferior (botones)
             HStack {
                 Spacer()
 
@@ -71,36 +106,23 @@ struct WorkOrderFormView: View {
                     dismiss()
                 }
 
-                Button("Guardar") {
+                PrimaryButton(
+                    title: "Guardar",
+                    systemImage: "checkmark",
+                    isDisabled: !viewModel.canSave
+                ) {
                     do {
                         try viewModel.save(in: modelContext)
                         dismiss()
                     } catch {
-                        print("Error al guardar:", error.localizedDescription)
+                        Logger.error("Error al guardar orden: \(error.localizedDescription)")
                     }
                 }
-                .disabled(!viewModel.canSave)
-                .keyboardShortcut(.defaultAction)
             }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
-        .padding()
-        .frame(minWidth: 500, minHeight: 520)
-    }
-
-    // MARK: - Helpers
-
-    private func filterToDecimalString(_ input: String) -> String {
-        // Keep digits and a single dot. You can adapt for locale if needed.
-        var result = ""
-        var hasDot = false
-        for ch in input {
-            if ch.isNumber {
-                result.append(ch)
-            } else if ch == "." && !hasDot {
-                result.append(ch)
-                hasDot = true
-            }
-        }
-        return result
+        // Ancho mínimo razonable para macOS, pero no exagerado
+        .frame(minWidth: 420, minHeight: 380)
     }
 }
