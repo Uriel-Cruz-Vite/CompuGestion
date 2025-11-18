@@ -8,6 +8,21 @@
 import SwiftUI
 import SwiftData
 
+// Modo del formulario: nuevo o editar
+private enum WorkOrderFormMode: Identifiable {
+    case new
+    case edit(WorkOrder)
+
+    var id: String {
+        switch self {
+        case .new:
+            return "new"
+        case .edit(let order):
+            return String(describing: order.persistentModelID)
+        }
+    }
+}
+
 struct WorkOrdersListView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -17,17 +32,18 @@ struct WorkOrdersListView: View {
 
     @State private var viewModel = WorkOrdersListViewModel()
 
-    // Estado para el formulario (sheet)
-    @State private var isShowingForm: Bool = false
-    @State private var orderToEdit: WorkOrder? = nil
+    // Estado del formulario (nuevo / editar)
+    @State private var formMode: WorkOrderFormMode? = nil
+
+    // Use case para facturas
+    private let generateInvoiceUseCase = GenerateInvoiceUseCase()
 
     var body: some View {
         VStack(spacing: 0) {
+
             // MARK: - Barra superior: búsqueda y filtro
             HStack(spacing: 12) {
-                TextField("Buscar cliente o equipo", text: $viewModel.searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(minWidth: 240)
+                SearchBar(text: $viewModel.searchText, placeholder: "Buscar cliente o equipo")
 
                 Menu {
                     Button("Todos los estados") {
@@ -50,9 +66,8 @@ struct WorkOrdersListView: View {
                 Spacer()
 
                 Button {
-                    // Nueva orden: limpiamos orderToEdit y mostramos formulario
-                    orderToEdit = nil
-                    isShowingForm = true
+                    // Nueva orden
+                    formMode = .new
                 } label: {
                     Label("Nueva orden", systemImage: "plus")
                 }
@@ -63,83 +78,118 @@ struct WorkOrdersListView: View {
 
             Divider()
 
-            // MARK: - Lista principal
+            // MARK: - Contenido principal
             let filtered = viewModel.filteredOrders(from: workOrders)
 
             if filtered.isEmpty {
-                VStack(spacing: 8) {
-                    Text("No hay órdenes para mostrar.")
-                        .font(.title3)
-
-                    Text("Crea una nueva orden o ajusta la búsqueda / filtros.")
-                        .foregroundStyle(.secondary)
-                }
+                EmptyStateView(
+                    title: "No hay órdenes para mostrar.",
+                    message: "Crea una nueva orden o ajusta la búsqueda / filtros.",
+                    systemImage: "wrench.and.screwdriver"
+                )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    ForEach(filtered) { order in
-                        HStack(alignment: .top, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(order.customerName)
-                                    .font(.headline)
-
-                                Text(order.deviceDescription)
-                                    .font(.subheadline)
-
-                                Text(order.status.localizedTitle)
-                                    .font(.caption)
-                                    .padding(.vertical, 2)
-                                    .padding(.horizontal, 6)
-                                    .background(Color.secondary.opacity(0.1))
-                                    .cornerRadius(6)
-                            }
-
-                            Spacer()
-
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text(viewModel.formattedCost(order.estimatedCost))
-                                    .font(.headline)
-
-                                Text(viewModel.formattedDate(order.createdAt))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                        .contentShape(Rectangle()) // Para que toda la fila sea clicable
-                        .onTapGesture {
-                            // Editar orden al tocar la fila
-                            orderToEdit = order
-                            isShowingForm = true
-                        }
-                        .contextMenu {
-                            Button("Editar") {
-                                orderToEdit = order
-                                isShowingForm = true
-                            }
-
-                            Button(role: .destructive) {
-                                viewModel.delete(order: order, in: modelContext)
-                            } label: {
-                                Label("Eliminar", systemImage: "trash")
-                            }
+                // 👇 ScrollView + LazyVStack en vez de List
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(filtered, id: \.persistentModelID) { order in
+                            orderRow(order)
+                                .id(order.persistentModelID)
+                            Divider()
                         }
                     }
                 }
             }
         }
         .navigationTitle("Órdenes de trabajo")
-        // MARK: - Sheet para crear / editar
-        .sheet(isPresented: $isShowingForm) {
-            if let orderToEdit {
-                WorkOrderFormView(
-                    viewModel: WorkOrderFormViewModel(order: orderToEdit)
-                )
-            } else {
-                WorkOrderFormView(
-                    viewModel: WorkOrderFormViewModel()
-                )
+        // MARK: - Sheet para crear / editar, basado en item (mode)
+        .sheet(item: $formMode) { mode in
+            switch mode {
+            case .new:
+                WorkOrderFormView(viewModel: WorkOrderFormViewModel())
+            case .edit(let order):
+                WorkOrderFormView(viewModel: WorkOrderFormViewModel(order: order))
             }
+        }
+    }
+
+    // MARK: - Fila de orden
+
+    @ViewBuilder
+    private func orderRow(_ order: WorkOrder) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(order.customerName)
+                    .font(.headline)
+
+                Text(order.deviceDescription)
+                    .font(.subheadline)
+
+                Text(order.status.localizedTitle)
+                    .font(.caption)
+                    .padding(.vertical, 2)
+                    .padding(.horizontal, 6)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(6)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(viewModel.formattedCost(order.estimatedCost))
+                    .font(.headline)
+
+                Text(viewModel.formattedDate(order.createdAt))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Editar al tocar la fila
+            formMode = .edit(order)
+        }
+        .contextMenu {
+            // EDITAR
+            Button("Editar") {
+                formMode = .edit(order)
+            }
+
+            // GENERAR FACTURA solo cuando está listo o entregado
+            let canGenerateInvoice =
+                order.status == .ready || order.status == .delivered
+
+            Button("Generar factura") {
+                if canGenerateInvoice {
+                    generateInvoice(for: order)
+                }
+            }
+            .disabled(!canGenerateInvoice)
+
+            // ELIMINAR
+            Button(role: .destructive) {
+                viewModel.delete(order: order, in: modelContext)
+            } label: {
+                Label("Eliminar", systemImage: "trash")
+            }
+        }
+    }
+
+    // MARK: - Facturación
+
+    private func generateInvoice(for order: WorkOrder) {
+        do {
+            _ = try generateInvoiceUseCase.execute(
+                for: order,
+                taxRate: 0.16,
+                markAsPaid: false,
+                in: modelContext
+            )
+            Logger.success("Factura generada desde la lista para \(order.customerName)")
+        } catch {
+            Logger.error("Error al generar factura: \(error.localizedDescription)")
         }
     }
 }

@@ -7,6 +7,21 @@
 import SwiftUI
 import SwiftData
 
+// Modo del formulario: nuevo o editar cliente
+private enum CustomerFormMode: Identifiable {
+    case new
+    case edit(Customer)
+
+    var id: String {
+        switch self {
+        case .new:
+            return "new"
+        case .edit(let customer):
+            return String(describing: customer.persistentModelID)
+        }
+    }
+}
+
 struct CustomersListView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -16,12 +31,12 @@ struct CustomersListView: View {
 
     @State private var viewModel = CustomersListViewModel()
 
-    // Estado para el formulario (sheet)
-    @State private var isShowingForm: Bool = false
-    @State private var customerToEdit: Customer? = nil
+    // Estado del formulario (nuevo / editar)
+    @State private var formMode: CustomerFormMode? = nil
 
     var body: some View {
         VStack(spacing: 0) {
+
             // MARK: - Barra superior
             HStack(spacing: 12) {
                 SearchBar(text: $viewModel.searchText, placeholder: "Buscar cliente")
@@ -29,8 +44,7 @@ struct CustomersListView: View {
                 Spacer()
 
                 Button {
-                    customerToEdit = nil
-                    isShowingForm = true
+                    formMode = .new
                 } label: {
                     Label("Nuevo cliente", systemImage: "person.badge.plus")
                 }
@@ -41,10 +55,10 @@ struct CustomersListView: View {
 
             Divider()
 
-            // MARK: - Lista
-            let items = viewModel.filteredItems(from: customers)
+            // MARK: - Contenido
+            let filtered = viewModel.filteredCustomers(from: customers)
 
-            if items.isEmpty {
+            if filtered.isEmpty {
                 EmptyStateView(
                     title: "No hay clientes registrados",
                     message: customers.isEmpty
@@ -53,70 +67,83 @@ struct CustomersListView: View {
                     systemImage: "person.crop.circle.badge.questionmark",
                     actionTitle: customers.isEmpty ? "Nuevo cliente" : nil
                 ) {
-                    customerToEdit = nil
-                    isShowingForm = true
+                    formMode = .new
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    ForEach(items) { item in
-                        if let customer = customers.first(where: { $0.persistentModelID == item.id }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "person.circle")
-                                    .font(.system(size: 28))
-                                    .foregroundStyle(.secondary)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.name)
-                                        .font(.headline)
-
-                                    HStack(spacing: 12) {
-                                        if let phone = item.phone, !phone.isEmpty {
-                                            Label(phone, systemImage: "phone.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-
-                                        if let email = item.email, !email.isEmpty {
-                                            Label(email, systemImage: "envelope.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
-
-                                Spacer()
-                            }
-                            .padding(.vertical, 4)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                customerToEdit = customer
-                                isShowingForm = true
-                            }
-                            .contextMenu {
-                                Button("Editar") {
-                                    customerToEdit = customer
-                                    isShowingForm = true
-                                }
-
-                                Button(role: .destructive) {
-                                    viewModel.delete(customer, in: modelContext)
-                                } label: {
-                                    Label("Eliminar", systemImage: "trash")
-                                }
-                            }
+                // 👇 ScrollView + LazyVStack en vez de List
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(filtered, id: \.persistentModelID) { customer in
+                            customerRow(customer)
+                                .id(customer.persistentModelID)
+                            Divider()
                         }
                     }
                 }
             }
         }
         .navigationTitle("Clientes")
-        // MARK: - Sheet para crear / editar cliente
-        .sheet(isPresented: $isShowingForm) {
-            if let customerToEdit {
-                CustomerFormView(viewModel: CustomerFormViewModel(customer: customerToEdit))
-            } else {
-                CustomerFormView(viewModel: CustomerFormViewModel())
+        // MARK: - Sheet para crear / editar basado en item (mode)
+        .sheet(item: $formMode) { mode in
+            switch mode {
+            case .new:
+                CustomerFormView(
+                    viewModel: CustomerFormViewModel()
+                )
+            case .edit(let customer):
+                CustomerFormView(
+                    viewModel: CustomerFormViewModel(customer: customer)
+                )
+            }
+        }
+    }
+
+    // MARK: - Fila de cliente
+
+    @ViewBuilder
+    private func customerRow(_ customer: Customer) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "person.circle")
+                .font(.system(size: 28))
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(customer.name)
+                    .font(.headline)
+
+                HStack(spacing: 12) {
+                    if let phone = customer.phone, !phone.isEmpty {
+                        Label(phone, systemImage: "phone.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let email = customer.email, !email.isEmpty {
+                        Label(email, systemImage: "envelope.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            formMode = .edit(customer)
+        }
+        .contextMenu {
+            Button("Editar") {
+                formMode = .edit(customer)
+            }
+
+            Button(role: .destructive) {
+                viewModel.delete(customer, in: modelContext)
+            } label: {
+                Label("Eliminar", systemImage: "trash")
             }
         }
     }

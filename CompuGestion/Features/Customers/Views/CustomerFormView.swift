@@ -6,17 +6,22 @@
 //
 import SwiftUI
 import SwiftData
+import Observation
 
 struct CustomerFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State var viewModel: CustomerFormViewModel
+    @Bindable var viewModel: CustomerFormViewModel
+
+    init(viewModel: CustomerFormViewModel) {
+        self._viewModel = Bindable(viewModel)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
 
-            // MARK: - Header
+            // Header
             HStack {
                 Text(viewModel.title)
                     .font(.title3)
@@ -28,11 +33,10 @@ struct CustomerFormView: View {
 
             Divider()
 
-            // MARK: - Contenido scrollable (una columna)
+            // Contenido
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    // Nombre
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Nombre")
                             .font(.caption)
@@ -40,7 +44,6 @@ struct CustomerFormView: View {
                         TextField("Nombre completo del cliente", text: $viewModel.name)
                     }
 
-                    // Teléfono
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Teléfono")
                             .font(.caption)
@@ -49,7 +52,6 @@ struct CustomerFormView: View {
                             .textFieldStyle(.roundedBorder)
                     }
 
-                    // Correo electrónico
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Correo electrónico")
                             .font(.caption)
@@ -58,7 +60,6 @@ struct CustomerFormView: View {
                             .textFieldStyle(.roundedBorder)
                     }
 
-                    // Dirección
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Dirección")
                             .font(.caption)
@@ -75,7 +76,6 @@ struct CustomerFormView: View {
 
             Divider()
 
-            // MARK: - Barra inferior (botones)
             HStack {
                 Spacer()
 

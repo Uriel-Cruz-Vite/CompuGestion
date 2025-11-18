@@ -7,17 +7,22 @@
 
 import SwiftUI
 import SwiftData
+import Observation
 
 struct InventoryFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State var viewModel: InventoryFormViewModel
+    @Bindable var viewModel: InventoryFormViewModel
+
+    init(viewModel: InventoryFormViewModel) {
+        self._viewModel = Bindable(viewModel)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
 
-            // MARK: - Header
+            // Header
             HStack {
                 Text(viewModel.title)
                     .font(.title3)
@@ -29,11 +34,9 @@ struct InventoryFormView: View {
 
             Divider()
 
-            // MARK: - Contenido scrollable (una columna)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    // SKU
                     VStack(alignment: .leading, spacing: 4) {
                         Text("SKU / Código")
                             .font(.caption)
@@ -41,7 +44,6 @@ struct InventoryFormView: View {
                         TextField("Ej. SSD-240-KINGSTON", text: $viewModel.sku)
                     }
 
-                    // Nombre
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Nombre del artículo")
                             .font(.caption)
@@ -49,16 +51,14 @@ struct InventoryFormView: View {
                         TextField("Ej. Disco SSD 240GB Kingston", text: $viewModel.name)
                     }
 
-                    // Categoría
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Categoría")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        TextField("Ej. Almacenamiento, Memorias, Tarjetas madre…", text: $viewModel.category)
+                        TextField("Ej. Almacenamiento, Memorias…", text: $viewModel.category)
                             .textFieldStyle(.roundedBorder)
                     }
 
-                    // Cantidad y stock mínimo
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Stock")
                             .font(.caption)
@@ -87,7 +87,6 @@ struct InventoryFormView: View {
                         }
                     }
 
-                    // Costo unitario
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Costo unitario (MXN)")
                             .font(.caption)
@@ -102,7 +101,6 @@ struct InventoryFormView: View {
                         }
                     }
 
-                    // Ubicación
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Ubicación")
                             .font(.caption)
@@ -111,7 +109,6 @@ struct InventoryFormView: View {
                             .textFieldStyle(.roundedBorder)
                     }
 
-                    // Notas
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Notas")
                             .font(.caption)
@@ -133,7 +130,6 @@ struct InventoryFormView: View {
 
             Divider()
 
-            // MARK: - Barra inferior (botones)
             HStack {
                 Spacer()
 

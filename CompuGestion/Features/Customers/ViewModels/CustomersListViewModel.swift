@@ -10,37 +10,27 @@ import Observation
 import SwiftData
 
 /// ViewModel para la pantalla de lista de clientes.
-/// No hace fetch directo: recibe los `Customer` (via @Query) y aplica
-/// búsqueda + mapeo a `CustomerListItem`.
 @Observable
 class CustomersListViewModel {
 
-    // Texto de búsqueda por nombre / teléfono / email
+    /// Texto de búsqueda por nombre / teléfono / email
     var searchText: String = ""
 
-    // MARK: - Filtrado y mapeo
+    // MARK: - Filtrado
 
-    func filteredItems(from customers: [Customer]) -> [CustomerListItem] {
-        let filtered = customers.filter { customer in
-            guard !searchText.isEmpty else { return true }
+    func filteredCustomers(from customers: [Customer]) -> [Customer] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return customers
+        }
 
-            let text = searchText.lowercased()
+        let text = trimmed.lowercased()
 
+        return customers.filter { customer in
             let matchesName = customer.name.lowercased().contains(text)
             let matchesPhone = customer.phone?.lowercased().contains(text) ?? false
             let matchesEmail = customer.email?.lowercased().contains(text) ?? false
-
             return matchesName || matchesPhone || matchesEmail
-        }
-
-        return filtered.map { customer in
-            CustomerListItem(
-                id: customer.persistentModelID,
-                name: customer.name,
-                phone: customer.phone,
-                email: customer.email,
-                summary: nil // más tarde podemos mostrar "X órdenes" aquí
-            )
         }
     }
 

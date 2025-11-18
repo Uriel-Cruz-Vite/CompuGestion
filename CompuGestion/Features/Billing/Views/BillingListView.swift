@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import AppKit
 
 struct BillingListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -16,6 +17,9 @@ struct BillingListView: View {
     private var invoices: [Invoice]
 
     @State private var viewModel = BillingListViewModel()
+
+    // Servicio para generar tickets PDF
+    private let pdfService = PDFGeneratorService.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,14 +46,7 @@ struct BillingListView: View {
                 }
 
                 Spacer()
-
-                // Luego puedes conectar este botón a una pantalla
-                // de facturación manual o generación desde WorkOrder.
-                Button {
-                    // TODO: abrir flujo de creación de factura
-                } label: {
-                    Label("Nueva factura", systemImage: "plus")
-                }
+                // Quitamos el botón "Nueva factura" para que todo se genere desde órdenes
             }
             .padding()
             .background(.ultraThinMaterial)
@@ -109,8 +106,8 @@ struct BillingListView: View {
 
                                 Spacer()
 
-                                // Total
-                                VStack(alignment: .trailing, spacing: 4) {
+                                // Total + acción rápida de ticket
+                                VStack(alignment: .trailing, spacing: 6) {
                                     Text(item.totalText)
                                         .font(.headline)
 
@@ -119,12 +116,24 @@ struct BillingListView: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
+
+                                    Button {
+                                        generateTicket(for: invoice)
+                                    } label: {
+                                        Label("Ticket", systemImage: "printer")
+                                            .font(.caption)
+                                    }
+                                    .buttonStyle(.bordered)
                                 }
                             }
                             .padding(.vertical, 4)
                             .contextMenu {
                                 Button(item.isPaid ? "Marcar como pendiente" : "Marcar como pagada") {
                                     viewModel.togglePaid(invoice, in: modelContext)
+                                }
+
+                                Button("Generar ticket") {
+                                    generateTicket(for: invoice)
                                 }
 
                                 Button(role: .destructive) {
@@ -141,13 +150,23 @@ struct BillingListView: View {
         .navigationTitle("Facturación")
     }
 
-    // MARK: - Helper
+    // MARK: - Helpers
 
     private var filterTitle: String {
         switch viewModel.paidFilter {
         case nil:    return "Todas"
         case true:   return "Pagadas"
         case false:  return "Pendientes"
+        }
+    }
+
+    private func generateTicket(for invoice: Invoice) {
+        do {
+            let url = try pdfService.generateTicket(for: invoice, in: modelContext)
+            NSWorkspace.shared.open(url) // Abre el PDF en Vista Previa
+            Logger.success("Ticket generado para factura \(invoice.invoiceNumber)")
+        } catch {
+            Logger.error("Error al generar ticket: \(error.localizedDescription)")
         }
     }
 }

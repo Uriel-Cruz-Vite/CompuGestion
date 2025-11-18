@@ -16,6 +16,7 @@ struct RootSceneView: View {
         case workOrders
         case customers
         case inventory
+        case billing
         case settings
 
         var title: String {
@@ -24,6 +25,7 @@ struct RootSceneView: View {
             case .workOrders: return "Órdenes de trabajo"
             case .customers:  return "Clientes"
             case .inventory:  return "Inventario"
+            case .billing:    return "Facturación"
             case .settings:   return "Configuración"
             }
         }
@@ -34,6 +36,7 @@ struct RootSceneView: View {
             case .workOrders: return "wrench.and.screwdriver"
             case .customers:  return "person.3"
             case .inventory:  return "shippingbox"
+            case .billing:    return "creditcard"
             case .settings:   return "gearshape"
             }
         }
@@ -49,6 +52,7 @@ struct RootSceneView: View {
                     sidebarRow(.workOrders)
                     sidebarRow(.customers)
                     sidebarRow(.inventory)
+                    sidebarRow(.billing)
                 }
 
                 Section("Sistema") {
@@ -70,6 +74,9 @@ struct RootSceneView: View {
 
             case .inventory:
                 InventoryListView()
+                
+            case .billing:
+                BillingListView()
                 
             case .settings:
                 SettingsView()

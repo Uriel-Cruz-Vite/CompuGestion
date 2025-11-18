@@ -1,11 +1,16 @@
 import SwiftUI
 import SwiftData
+import Observation
 
 struct WorkOrderFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State var viewModel: WorkOrderFormViewModel
+    @Bindable var viewModel: WorkOrderFormViewModel
+
+    init(viewModel: WorkOrderFormViewModel) {
+        self._viewModel = Bindable(viewModel)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -51,7 +56,6 @@ struct WorkOrderFormView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        // Picker en estilo menú para que no ocupe todo el ancho
                         Picker("Estado", selection: $viewModel.status) {
                             ForEach(WorkOrderStatus.allCases) { status in
                                 Text(status.localizedTitle)
@@ -122,7 +126,6 @@ struct WorkOrderFormView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
         }
-        // Ancho mínimo razonable para macOS, pero no exagerado
         .frame(minWidth: 420, minHeight: 380)
     }
 }
