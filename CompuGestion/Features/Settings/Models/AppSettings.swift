@@ -30,6 +30,9 @@ final class AppSettings {
 
     // Tasa de impuestos por defecto (ej. 0.16 para 16%)
     var defaultTaxRate: Double
+    
+    // Nombre de la impresora de tickets preferida
+    var ticketPrinterName: String
 
     // Fecha de creación / última actualización
     var updatedAt: Date
@@ -40,7 +43,8 @@ final class AppSettings {
         address: String = "",
         phone: String = "",
         email: String = "",
-        defaultTaxRate: Double = 0.16
+        defaultTaxRate: Double = 0.16,
+        ticketPrinterName: String = ""
     ) {
         self.businessName = businessName
         self.taxId = taxId
@@ -48,6 +52,7 @@ final class AppSettings {
         self.phone = phone
         self.email = email
         self.defaultTaxRate = defaultTaxRate
+        self.ticketPrinterName = ticketPrinterName
         self.updatedAt = Date()
     }
 }

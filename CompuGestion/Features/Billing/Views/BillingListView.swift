@@ -18,8 +18,8 @@ struct BillingListView: View {
 
     @State private var viewModel = BillingListViewModel()
 
-    // Servicio para generar tickets PDF
-    private let pdfService = PDFGeneratorService.shared
+    // Servicio para imprimir tickets
+    private let ticketPrintService = TicketPrintService.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,7 +46,7 @@ struct BillingListView: View {
                 }
 
                 Spacer()
-                // Quitamos el botón "Nueva factura" para que todo se genere desde órdenes
+                // No añadimos "Nueva factura": las facturas se generan desde Órdenes de trabajo
             }
             .padding()
             .background(.ultraThinMaterial)
@@ -118,7 +118,7 @@ struct BillingListView: View {
                                     }
 
                                     Button {
-                                        generateTicket(for: invoice)
+                                        ticketPrintService.printTicket(for: invoice, in: modelContext)
                                     } label: {
                                         Label("Ticket", systemImage: "printer")
                                             .font(.caption)
@@ -132,8 +132,8 @@ struct BillingListView: View {
                                     viewModel.togglePaid(invoice, in: modelContext)
                                 }
 
-                                Button("Generar ticket") {
-                                    generateTicket(for: invoice)
+                                Button("Imprimir ticket") {
+                                    ticketPrintService.printTicket(for: invoice, in: modelContext)
                                 }
 
                                 Button(role: .destructive) {
@@ -159,14 +159,5 @@ struct BillingListView: View {
         case false:  return "Pendientes"
         }
     }
-
-    private func generateTicket(for invoice: Invoice) {
-        do {
-            let url = try pdfService.generateTicket(for: invoice, in: modelContext)
-            NSWorkspace.shared.open(url) // Abre el PDF en Vista Previa
-            Logger.success("Ticket generado para factura \(invoice.invoiceNumber)")
-        } catch {
-            Logger.error("Error al generar ticket: \(error.localizedDescription)")
-        }
-    }
 }
+

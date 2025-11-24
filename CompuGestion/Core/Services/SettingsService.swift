@@ -39,6 +39,7 @@ final class SettingsService {
         var phone: String
         var email: String
         var defaultTaxRate: Double
+        var ticketPrinterName: String
     }
 
     /// Actualiza la configuración con los valores proporcionados.
@@ -54,6 +55,7 @@ final class SettingsService {
         settings.phone = input.phone
         settings.email = input.email
         settings.defaultTaxRate = input.defaultTaxRate
+        settings.ticketPrinterName = input.ticketPrinterName
         settings.updatedAt = Date()
 
         try context.save()
