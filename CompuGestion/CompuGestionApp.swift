@@ -23,7 +23,8 @@ struct RepairManagerApp: App {
             InventoryItem.self,
             Invoice.self,
             User.self,
-            AppSettings.self      // 👈 IMPORTANTE: agregar AppSettings
+            AppSettings.self,
+            AuthUser.self// 👈 IMPORTANTE: agregar AppSettings
         ])
     }
 }
